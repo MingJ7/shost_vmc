@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-const MediaStreamer = dynamic(() => import("@/components/MediaStreamer"), { ssr: false })
+const MediaStreamer = dynamic(() => import("../../../components/MediaStreamer"), { ssr: false })
 
 export default function Component() {
     const param = useParams();
