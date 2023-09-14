@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 
 export default function Home() {
   return (
@@ -7,11 +8,11 @@ export default function Home() {
         Welcome to Single Host VMC.
         <br/>
         <br/>
-        Click <a className="line-through text-blue-600 hover:text-blue-800 visited:text-purple-600">here</a> to see how to use this.
+        Click <Link className="line-through text-blue-600 hover:text-blue-800 visited:text-purple-600" href="">here</Link> to see how to use this.
         <br/>
-        Click <a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href='/host'>here</a> to host a session.
+        Click <Link className="line-through text-blue-600 hover:text-blue-800 visited:text-purple-600" href='/host'>here</Link> to host a session.
         <br/>
-        Click <a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href='/pythonServer.py'>here</a> to get the python server to forward the VMC packets
+        Click <Link className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href='/pythonServer.py'>here</Link> to get the python server to forward the VMC packets
 
       </div>
     </main>

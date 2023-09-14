@@ -109,8 +109,8 @@ export default function MediaRecv() {
     console.log("render")
     return (<div>
         <p>Share the for others to join</p>
-        <a href={window.location.protocol + "//" + window.location.host + "/join/" + myID}>
-            {window.location.protocol + "//" + window.location.host + "/join/" + myID}
+        <a href={window.location.protocol + "//" + window.location.host + "/jointVMC/join/" + myID}>
+            {window.location.protocol + "//" + window.location.host + "/jointVMC/join/" + myID}
         </a>
         <div id='Log' className='top-1 overflow-auto flex-1'>
             {
