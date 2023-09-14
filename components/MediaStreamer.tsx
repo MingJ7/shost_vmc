@@ -1,11 +1,11 @@
 "use client"
 import clientPeer from '@/libs/clientPeer';
-import Peer, { DataConnection } from 'peerjs';
+import Peer, { DataConnection, MediaConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
 
 
 
-export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string, mediaStream: MediaStream}) {
+export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string, mediaStream?: MediaStream}) {
     const [peer, setPeer] = useState<undefined | clientPeer>();
     const [conn, setConn] = useState<undefined | DataConnection>();
     
@@ -14,15 +14,15 @@ export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string
     function setup(){
         const newPeer = new clientPeer();
         newPeer.on("open", () => {
+            console.log("client:", newPeer.id)
             const c = newPeer.connect(remoteID);
             c.on("open",() => {
-                const d = newPeer.call(remoteID, mediaStream);
+                // only assign the connection on connected
+                setConn(c);
             })
             c.on('data', (data: any) => {
                 setLog([...log, data]);
             })
-            setConn(c);
-
         })
         
         setPeer(newPeer)
@@ -36,7 +36,20 @@ export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string
             console.log("cleanup done")
         }
     }
+
+    function streamSetup(){
+        let stream: MediaConnection;
+        if(peer && conn && mediaStream){
+            stream = peer.call(remoteID, mediaStream);
+        }
+
+        return function cleanup(){
+            if  (stream) stream.close()
+        }
+    }
+
     useEffect(setup, [])
+    useEffect(streamSetup, [conn, mediaStream])
     
     return (<div>
         <div id='Log' className='top-1 overflow-auto flex-1'>

@@ -27,6 +27,7 @@ function connMapUpdater(state: Map<string, client>, action: {type: string, dataC
         } else {
             if (newConnMap.has(connID)){
                 // close the previous connection if it exists
+                console.log(newConnMap.get(connID))
                 newConnMap.get(connID)!.mediaConn?.close();
                 newConnMap.get(connID)!.mediaConn = action.mediaConn;
                 // if (!action.mediaConn?.open) action.mediaConn?.answer()
@@ -43,9 +44,10 @@ function connMapUpdater(state: Map<string, client>, action: {type: string, dataC
             newConnMap.delete(connID)
         } else {
             newConnMap.get(connID)?.dataConn.send("Media Connection Closed")
-            // newConnMap.get(connID)?.mediaConn?.close();
-            // if (action.mediaConn === newConnMap.get(connID)?.mediaConn)
-            //     delete newConnMap.get(connID)?.mediaConn;
+            newConnMap.get(connID)?.mediaConn?.close();
+            if (newConnMap.has(connID))
+                if (action.mediaConn === newConnMap.get(connID)?.mediaConn)
+                    newConnMap.get(connID)!.mediaConn = undefined
         }
     }
     console.log(newConnMap)
@@ -84,6 +86,7 @@ export default function MediaRecv() {
         })
         mediaConn.on("close", () => {
             updateConnMap({type: "REMOVE", mediaConn:mediaConn})
+            console.log("stream has ended")
         })
         mediaConn.answer()
     }
@@ -105,12 +108,14 @@ export default function MediaRecv() {
     useEffect(setup, [])
     console.log("render")
     return (<div>
-        <h1>{myID}</h1>
-        <a href={'http://localhost:3000/join/' + myID}>Join</a>
+        <p>Share the for others to join</p>
+        <a href={window.location.protocol + "//" + window.location.host + "/join/" + myID}>
+            {window.location.protocol + "//" + window.location.host + "/join/" + myID}
+        </a>
         <div id='Log' className='top-1 overflow-auto flex-1'>
             {
                 log.map((ele, idx) => {
-                    return <p className='h-20 text-center bottom-1' key={idx}>{ele}</p>
+                    return <p className='text-center border-spacing-1' key={idx}>{ele}</p>
                 })
             }
         </div>
@@ -118,9 +123,6 @@ export default function MediaRecv() {
             Array.from(connMap).map(([id, client], idx) => (
                 <div key={id}>
                     <p>Peer {idx}: {id}</p>
-                    <p>{client.dataConn.connectionId}</p>
-                    <p>{client.mediaConn?.connectionId}</p>
-                    {/* <p>{client.mediaConn?.remoteStream.id}</p> */}
                     <Preview mediaStream={client.mediaConn?.remoteStream}/>
                 </div>
             ))
@@ -211,10 +213,11 @@ function AudioOutputSelector({videoRef}: {videoRef: MutableRefObject<null>}) {
 
     function updateAudioOut(deviceID: string){
         setAudioOut(deviceID)
-        if (videoRef.current){
-            // Experimental features, defination not in typescript
-            if(videoRef.current.sinkId !== 'undefined'){
-                videoRef.current.setSinkId(deviceID) .then(() => {
+        const video = videoRef.current as any // as HTMLVideoElement // to stop typescript errors
+        if (video){
+            // sinkId Experimental features, defination not in typescript
+            if(video.sinkId !== 'undefined'){
+                video.setSinkId(deviceID) .then(() => {
                     console.log(`Success, audio output device attached: ${deviceID} to element with as source.`);
                   })
                   .catch((error: Error) => {

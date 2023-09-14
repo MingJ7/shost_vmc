@@ -14,18 +14,12 @@ export default function Component() {
 
 
     return (<div>
-        <h1>Your id is {myID}</h1>
         <MediaSelection setMediaStream={setMediaStream}/>
-        {
-            mediaStream === undefined ?
-                <p>MediaStream is undefined</p>
-                :
-                <MediaStreamer remoteID={remote} mediaStream={mediaStream} />
-        }
+        <MediaStreamer remoteID={remote} mediaStream={mediaStream} />
     </div>)
 }
 
-function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaStream) => void}) {
+function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaStream | undefined) => void}) {
     const [videoInDevices, setVideoInDevices] = useState(new Array<MediaDeviceInfo>())
     const [audioInDevices, setAudioInDevices] = useState(new Array<MediaDeviceInfo>())
     const [videoIn, setVideoIn] = useState("")
@@ -40,10 +34,10 @@ function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaStream) =
         for (let i = 0; i !== deviceInfos.length; ++i) {
             const deviceInfo = deviceInfos[i];
             if (deviceInfo.kind === 'audioinput') {
-                // console.log('Audio Input: ', deviceInfo);
+                console.log('Audio Input: ', deviceInfo);
                 newAudioList.push(deviceInfo);
             } else if (deviceInfo.kind === 'videoinput') {
-                // console.log('Video Input: ', deviceInfo);
+                console.log('Video Input: ', deviceInfo);
                 newVideoList.push(deviceInfo);
             } else {
                 // console.log('Some other kind of source/device: ', deviceInfo);
@@ -83,6 +77,7 @@ function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaStream) =
             });
         }
         setActiveMediaStream(undefined)
+        setMediaStream(undefined)
     }
 
     useEffect(function startup(){

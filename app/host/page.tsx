@@ -9,8 +9,6 @@ export default function Component() {
     const [myID, setMyID] = useState("");
 
     return (<div>
-        <h1>Your id is {myID}</h1>
-        
         <MediaRecv/>
     </div>)
 }
