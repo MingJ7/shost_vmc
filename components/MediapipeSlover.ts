@@ -84,6 +84,7 @@ export class VMCStreamer {
   sock: WebSocket;
   faceLandmarker: FaceLandmarker | undefined;
   baseNeckRotation: Vector;
+  upperArmRotation: Vector;
   updateBase: boolean;
 
   constructor(video: HTMLVideoElement, stream: MediaStream) {
@@ -91,6 +92,7 @@ export class VMCStreamer {
     this.stream = stream;
     this.sock = new WebSocket("ws://localhost:8765");
     this.baseNeckRotation = new Vector(0, 0, 0);
+    this.upperArmRotation = new Vector(0, 0, 0);
     this.updateBase = false;
     this.video.srcObject = this.stream;
 
@@ -113,7 +115,7 @@ export class VMCStreamer {
           if (kaliFace) {
             if (this.updateBase) this.updateBaseNeckRotation(kaliFace);
             VMCStreamer.adjustNeckPose(kaliFace, this.baseNeckRotation);
-            const vmcMsgs = VMCStreamer.kaliFaceToVMC(kaliFace);
+            const vmcMsgs = VMCStreamer.kaliFaceToVMC(kaliFace, this.upperArmRotation.z);
             this.transmitVMC(vmcMsgs);
           }
           console.log(prevTime, "results: ", kaliFace)
@@ -143,6 +145,10 @@ export class VMCStreamer {
     this.updateBase = true;
   }
 
+  setArmRotation(zRad: number){
+    this.upperArmRotation.z = zRad;
+  }
+
   updateBaseNeckRotation(kaliFace:TFace){
     this.baseNeckRotation.x = kaliFace.head.x;
     this.baseNeckRotation.y = kaliFace.head.y;
@@ -156,11 +162,16 @@ export class VMCStreamer {
     detectedFace.head.z = baseNeckRotation.z - detectedFace.head.z;
   }
 
-  static kaliFaceToVMC(kaliFace: TFace){
+  static kaliFaceToVMC(kaliFace: TFace, armRot: number){
     const boneTransforms = []
     // Neck 
-    const q = Quaternion.fromEulerLogical(kaliFace.head.x, kaliFace.head.y, kaliFace.head.z, "XYZ")
-    boneTransforms.push(["Neck", 0.1, 0.1, 0.1, q.x, q.y, q.z, q.w])
+    const neckQuat = Quaternion.fromEulerLogical(kaliFace.head.x, kaliFace.head.y, kaliFace.head.z, "XYZ")
+    boneTransforms.push(["Neck", 0.1, 0.1, 0.1, neckQuat.x, neckQuat.y, neckQuat.z, neckQuat.w])
+    // Arms 
+    const rUprArmQuat = Quaternion.fromEulerLogical(0, 0, armRot, "XYZ")
+    boneTransforms.push(["RightUpperArm", 0.1, 0.1, 0.1, rUprArmQuat.x, rUprArmQuat.y, rUprArmQuat.z, rUprArmQuat.w])
+    const lUprArmQuat = Quaternion.fromEulerLogical(0, 0, -armRot, "XYZ")
+    boneTransforms.push(["LeftUpperArm", 0.1, 0.1, 0.1, lUprArmQuat.x, lUprArmQuat.y, lUprArmQuat.z, lUprArmQuat.w])
     //blend shapes
     const blendShapes = []
     blendShapes.push(["Blink_L", 1 - kaliFace.eye.l])

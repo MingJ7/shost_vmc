@@ -8,6 +8,12 @@ export function Preview ({mediaStream}: {mediaStream: MediaStream | undefined}){
     const [vmcStream, setVMCStream] = useState<VMCStreamer | undefined>()
     const videoRef = useRef(null)
     const [volume, setVolume] = useState(1);
+    const [armRotation, setArmRotation] = useState(-Math.PI/2);
+    
+    function updateArmRotation(armRot: number){
+        vmcStream?.setArmRotation(armRot);
+        setArmRotation(armRot);
+    }
 
     function updateVolume(vol: number){
         const videoElement = videoRef.current as unknown as HTMLVideoElement;
@@ -50,6 +56,7 @@ export function Preview ({mediaStream}: {mediaStream: MediaStream | undefined}){
                 <div>
                     <AudioOutputSelector videoRef={videoRef}/>
                     <input type='range' max={1} min={0} step={0.01} onChange={(evt) => updateVolume(Number(evt.target.value))} value={volume}></input>
+                    <input type='range' max={0} min={-Math.PI*2} step={Math.PI/180} onChange={(evt) => updateArmRotation(Number(evt.target.value))} value={armRotation}></input>
                     <button onClick={togglePlay}>Toggle state</button>
                     <button onClick={(evt) => vmcStream.resetPose()}>Reset Pose</button>
                 </div>
