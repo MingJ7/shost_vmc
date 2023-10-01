@@ -8,11 +8,18 @@ export function Preview ({mediaStream}: {mediaStream: MediaStream | undefined}){
     const [vmcStream, setVMCStream] = useState<VMCStreamer | undefined>()
     const videoRef = useRef(null)
     const [volume, setVolume] = useState(1);
+    const [port, setPort] = useState(35750);
     const [armRotation, setArmRotation] = useState(Math.PI/4);
     
-    function updateArmRotation(armRot: number){
-        vmcStream?.setArmRotation(-armRot);
-        setArmRotation(armRot);
+    function updateArmRotation(armRotation: number){
+        vmcStream?.setArmRotation(-armRotation);
+        setArmRotation(armRotation);
+    }
+
+    function updatePort(port: number){
+        if (port < 1024) port = 1024;
+        vmcStream?.setPort(port);
+        setPort(port);
     }
 
     function updateVolume(vol: number){
@@ -29,17 +36,21 @@ export function Preview ({mediaStream}: {mediaStream: MediaStream | undefined}){
 
     useEffect(function updatePreview(){
         console.log("Update Preview", mediaStream)
+        var newVMCStream: undefined | VMCStreamer;
         if (mediaStream) {
             const videoElement = videoRef.current;
             console.log("EffectVideo", videoElement);
             if(videoElement) {
-                const newVMCStream = new VMCStreamer(videoElement, mediaStream);
+                newVMCStream = new VMCStreamer(videoElement, mediaStream);
                 newVMCStream.setArmRotation(-armRotation);
+                newVMCStream.setPort(port)
                 setVMCStream(newVMCStream);
             }
             
         }
-        return function cleanup() {}
+        return function cleanup() {
+            newVMCStream?.release();
+        }
     }, [mediaStream])
 
     return (
@@ -58,6 +69,7 @@ export function Preview ({mediaStream}: {mediaStream: MediaStream | undefined}){
                     <AudioOutputSelector videoRef={videoRef}/>
                     <input type='range' max={1} min={0} step={0.01} onChange={(evt) => updateVolume(Number(evt.target.value))} value={volume}></input>
                     <input type='range' max={Math.PI*2} min={0} step={Math.PI/180} onChange={(evt) => updateArmRotation(Number(evt.target.value))} value={armRotation}></input>
+                    <input type='number' onChange={(evt) => updatePort(parseInt(evt.target.value))} value={port}></input>
                     <button onClick={togglePlay}>Toggle state</button>
                     <button onClick={(evt) => vmcStream.resetPose()}>Reset Pose</button>
                 </div>

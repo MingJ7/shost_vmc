@@ -7,6 +7,7 @@ import { json } from "stream/consumers";
 export class VMCStreamer {
   video: HTMLVideoElement;
   stream: MediaStream;
+  port: number;
   sock: WebSocket;
   faceLandmarker: FaceLandmarker | undefined;
   baseNeckRotation: Vector;
@@ -16,7 +17,8 @@ export class VMCStreamer {
   constructor(video: HTMLVideoElement, stream: MediaStream) {
     this.video = video;
     this.stream = stream;
-    this.sock = VMCStreamer.createWebSocket(35750);
+    this.port = 35750
+    this.sock = VMCStreamer.createWebSocket(this.port);
     this.baseNeckRotation = new Vector(0, 0, 0);
     this.upperArmRotation = new Vector(0, 0, 0);
     this.updateBase = false;
@@ -61,7 +63,7 @@ export class VMCStreamer {
     } else if (this.sock.readyState >= this.sock.CLOSING){
       // Create new connection is prev one is closed
       this.sock.close();
-      this.sock = VMCStreamer.createWebSocket(35750);
+      this.sock = VMCStreamer.createWebSocket(this.port);
       console.log("Failed to send data, Websocket is Closed", "Retrying connection")
     }
   }
@@ -76,11 +78,24 @@ export class VMCStreamer {
     this.upperArmRotation.z = zRad;
   }
 
+  setPort(port: number){
+    this.port = port;
+    this.sock = VMCStreamer.createWebSocket(port);
+  }
+
   updateBaseNeckRotation(kaliFace:TFace){
     this.baseNeckRotation.x = kaliFace.head.x;
     this.baseNeckRotation.y = kaliFace.head.y;
     this.baseNeckRotation.z = kaliFace.head.z;
     this.updateBase = false;
+  }
+
+  release(){
+    console.log("closing sock")
+    this.sock.close();
+    console.log("closing landmarker")
+    // this.faceLandmarker?.close();
+    console.log("closed VMC streamer")
   }
 
   static createWebSocket(port: number){
