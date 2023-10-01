@@ -2,81 +2,7 @@ import { FaceLandmarker, FilesetResolver, FaceLandmarkerResult } from "@mediapip
 import { Face, TFace, Vector } from "kalidokit";
 import Quaternion from "quaternion";
 import osc from "osc-min";
-
-let faceLandmarker: FaceLandmarker;
-
-// Before we can use HandLandmarker class we must wait for it to finish
-// loading. Machine Learning models can be large and take a moment to
-// get everything needed to run.
-async function createFaceLandmarker() {
-  const filesetResolver = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-  );
-  faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-    baseOptions: {
-      modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-      delegate: "GPU"
-    },
-    outputFaceBlendshapes: false,
-    runningMode: "VIDEO",
-    numFaces: 1
-  });
-}
-
-createFaceLandmarker();
-// const oscPort = new osc.WebSocketPort({url: "ws://localhost:8765"})
-// oscPort.open();
-const sock = new WebSocket("ws://localhost:8765")
-
-
-/********************************************************************
-// Demo 2: Continuously grab image from webcam stream and detect it.
-********************************************************************/
-export function convertStream(videoEle: HTMLVideoElement, stream: MediaStream) {
-  // slove the stream?
-  videoEle.srcObject = stream;
-  videoEle.addEventListener("loadeddata", () => predictWebcam(videoEle, stream, new Vector([0, 0, 0]), -1))
-}
-
-export async function predictWebcam(videoEle: HTMLVideoElement, stream: MediaStream, baseNeckRotaion: Vector, prevTime: DOMHighResTimeStamp) {
-  console.log("prevTime:", prevTime)
-  const timeNow = performance.now()
-  console.log("currentTime:", timeNow)
-  // Now let's start detecting the stream.
-  if (prevTime !== timeNow) {
-    console.log("upadtaing time:", prevTime, " to ", timeNow)
-    prevTime = timeNow;
-    const mpResults = faceLandmarker.detectForVideo(videoEle, timeNow);
-    if (mpResults.faceLandmarks[0]) {
-      const kaliFace = Face.solve(mpResults.faceLandmarks[0], {
-        runtime: "mediapipe",
-        video: videoEle,
-      })
-      if (kaliFace) {
-        // removeBasePose(kaliFace, baseNeckRotaion)
-        // kaliFaceToVMC(kaliFace)
-      }
-      console.log(prevTime, "results: ", kaliFace)
-    }
-  }
-
-  // if (videoEle.title === "Defualt"){
-  //   defualtPose = "The defualt pose"
-  // }
-  // Call this function again to keep predicting when the browser is ready.
-  // if (videoEle.paused){
-  //   if(videoEle.onplay){
-  //     const restartPrediction = () =>{
-  //       predictWebcam(videoEle, stream, performance.now())
-  //       videoEle.removeEventListener("play", restartPrediction)
-  //     }
-  //     videoEle.addEventListener("play", restartPrediction)
-  //   }
-  // } else 
-  if (stream.active && !videoEle.paused) {
-    window.requestAnimationFrame((newTimeNow) => predictWebcam(videoEle, stream, baseNeckRotaion, newTimeNow));
-  }
-}
+import { json } from "stream/consumers";
 
 export class VMCStreamer {
   video: HTMLVideoElement;
@@ -90,7 +16,7 @@ export class VMCStreamer {
   constructor(video: HTMLVideoElement, stream: MediaStream) {
     this.video = video;
     this.stream = stream;
-    this.sock = new WebSocket("ws://localhost:8765");
+    this.sock = VMCStreamer.createWebSocket(35750);
     this.baseNeckRotation = new Vector(0, 0, 0);
     this.upperArmRotation = new Vector(0, 0, 0);
     this.updateBase = false;
@@ -130,12 +56,13 @@ export class VMCStreamer {
   }
 
   transmitVMC(VMCData: Buffer){
-    if(this.sock.OPEN){
-      sock.send(VMCData)
-    } else if (sock.CLOSED || sock.CLOSING){
+    if(this.sock.readyState == this.sock.OPEN){
+      this.sock.send(VMCData);
+    } else if (this.sock.readyState >= this.sock.CLOSING){
       // Create new connection is prev one is closed
-      // this.sock = new WebSocket("ws://localhost:8765");
-      console.log("Failed to send data, Websocket is Closed")
+      this.sock.close();
+      this.sock = VMCStreamer.createWebSocket(35750);
+      console.log("Failed to send data, Websocket is Closed", "Retrying connection")
     }
   }
 
@@ -156,6 +83,12 @@ export class VMCStreamer {
     this.updateBase = false;
   }
 
+  static createWebSocket(port: number){
+    const ws = new WebSocket("ws://localhost:8765");
+    ws.addEventListener("open", () => ws.send(JSON.stringify({type: "init", port: port})));
+    return ws;
+  }
+  
   static adjustNeckPose(detectedFace: TFace, baseNeckRotation: Vector) {
     detectedFace.head.x = baseNeckRotation.x - detectedFace.head.x;
     detectedFace.head.y = baseNeckRotation.y - detectedFace.head.y;
