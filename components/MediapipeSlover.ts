@@ -7,6 +7,7 @@ import { json } from "stream/consumers";
 export class VMCStreamer {
   video: HTMLVideoElement;
   stream: MediaStream;
+  framerate: number;
   port: number;
   sock: WebSocket;
   faceLandmarker: FaceLandmarker | undefined;
@@ -17,6 +18,7 @@ export class VMCStreamer {
   constructor(video: HTMLVideoElement, stream: MediaStream) {
     this.video = video;
     this.stream = stream;
+    this.framerate = stream.getVideoTracks()[0].getSettings().frameRate ?? 30;
     this.port = 35750
     this.sock = VMCStreamer.createWebSocket(this.port);
     this.baseNeckRotation = new Vector(0, 0, 0);
@@ -46,14 +48,14 @@ export class VMCStreamer {
             const vmcMsgs = VMCStreamer.kaliFaceToVMC(kaliFace, this.upperArmRotation.z);
             this.transmitVMC(vmcMsgs);
           }
-          console.log(prevTime, "results: ", kaliFace)
-        }
+          // console.log(prevTime, "results: ", kaliFace)
+        } 
       }
     }
     // If the stream is active and video not paused
-    // Queue Calculations for next window refresh
+    // Queue Calculations for next frame
     if (this.stream.active && !this.video.paused) {
-      window.requestAnimationFrame((newTimeNow) => this.detection(newTimeNow));
+      setTimeout((newTimeNow) => this.detection(newTimeNow), 1000/this.framerate);
     }
   }
 
