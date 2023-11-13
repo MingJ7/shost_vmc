@@ -2,25 +2,78 @@ import { FaceLandmarker, FilesetResolver, FaceLandmarkerResult } from "@mediapip
 import { Face, TFace, Vector } from "kalidokit";
 import Quaternion from "quaternion";
 import osc from "osc-min";
-import { json } from "stream/consumers";
+import { DataConnection } from "peerjs";
+export class WShostLink {
+  port: number;
+  ws: WebSocket;
+
+  constructor(port: number){
+    this.port = port;
+    this.ws =  WShostLink.createWebSocket(port);
+  }
+
+  send(buffer: Buffer){
+    if(this.ws.readyState == this.ws.OPEN){
+      this.ws.send(buffer);
+    } else if (this.ws.readyState >= this.ws.CLOSING){
+      // Create new connection is prev one is closed
+      this.ws.close();
+      this.ws = WShostLink.createWebSocket(this.port);
+      console.log("Failed to send data, Websocket is Closed", "Retrying connection");
+    }
+  }
+
+  setPort(port: number){
+    this.port = port;
+    this.ws.close();
+    this.ws = WShostLink.createWebSocket(port);
+  }
+
+  close(){
+    this.ws.close();
+  }
+
+  static createWebSocket(port: number){
+    const ws = new WebSocket("ws://localhost:8765");
+    ws.addEventListener("open", () => ws.send(JSON.stringify({type: "init", port: port})));
+    return ws;
+  }
+}
+
+export class WRTCclientLink{
+  dc: DataConnection;
+
+  constructor(dc: DataConnection){
+    this.dc = dc;
+  }
+
+  send(buf: Buffer){
+    if (this.dc.open){
+      this.dc.send({type:"motionData", data: buf})
+    }
+  }
+
+  close(){
+  }
+}
 
 export class VMCStreamer {
   video: HTMLVideoElement;
   stream: MediaStream;
   framerate: number;
   port: number;
-  sock: WebSocket;
+  linker: WShostLink | WRTCclientLink;
   faceLandmarker: FaceLandmarker | undefined;
   baseNeckRotation: Vector;
   upperArmRotation: Vector;
   updateBase: boolean;
 
-  constructor(video: HTMLVideoElement, stream: MediaStream) {
+  constructor(video: HTMLVideoElement, stream: MediaStream, linker: WShostLink | WRTCclientLink) {
     this.video = video;
     this.stream = stream;
     this.framerate = stream.getVideoTracks()[0].getSettings().frameRate ?? 30;
     this.port = 35750
-    this.sock = VMCStreamer.createWebSocket(this.port);
+    this.linker = linker;
     this.baseNeckRotation = new Vector(0, 0, 0);
     this.upperArmRotation = new Vector(0, 0, 0);
     this.updateBase = false;
@@ -60,14 +113,7 @@ export class VMCStreamer {
   }
 
   transmitVMC(VMCData: Buffer){
-    if(this.sock.readyState == this.sock.OPEN){
-      this.sock.send(VMCData);
-    } else if (this.sock.readyState >= this.sock.CLOSING){
-      // Create new connection is prev one is closed
-      this.sock.close();
-      this.sock = VMCStreamer.createWebSocket(this.port);
-      console.log("Failed to send data, Websocket is Closed", "Retrying connection")
-    }
+    this.linker.send(VMCData);
   }
 
   resetPose(){
@@ -80,11 +126,6 @@ export class VMCStreamer {
     this.upperArmRotation.z = zRad;
   }
 
-  setPort(port: number){
-    this.port = port;
-    this.sock = VMCStreamer.createWebSocket(port);
-  }
-
   updateBaseNeckRotation(kaliFace:TFace){
     this.baseNeckRotation.x = kaliFace.head.x;
     this.baseNeckRotation.y = kaliFace.head.y;
@@ -94,16 +135,10 @@ export class VMCStreamer {
 
   release(){
     console.log("closing sock")
-    this.sock.close();
+    this.linker.close();
     console.log("closing landmarker")
     // this.faceLandmarker?.close();
     console.log("closed VMC streamer")
-  }
-
-  static createWebSocket(port: number){
-    const ws = new WebSocket("ws://localhost:8765");
-    ws.addEventListener("open", () => ws.send(JSON.stringify({type: "init", port: port})));
-    return ws;
   }
   
   static adjustNeckPose(detectedFace: TFace, baseNeckRotation: Vector) {

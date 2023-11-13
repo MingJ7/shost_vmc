@@ -107,8 +107,7 @@ export function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaSt
                 </div>
                 :
                 <div> 
-                    <button onClick={start}>Record</button>
-                    <button>Record and Send</button>
+                    <button onClick={start}>Start</button>
                 </div>
             }
             {

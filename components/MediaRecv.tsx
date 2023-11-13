@@ -2,7 +2,7 @@
 import hostPeer from '@/libs/hostPeer';
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
 import React, { useEffect, useReducer, useRef, useState } from 'react';
-import { Preview } from './MediaStreamPreview';
+import { HostPreview } from './HostPreview';
 
 type client = {
     dataConn: DataConnection,
@@ -27,13 +27,12 @@ function connMapUpdater(state: Map<string, client>, action: {type: string, dataC
         } else {
             if (newConnMap.has(connID)){
                 // close the previous connection if it exists
-                console.log(newConnMap.get(connID))
                 newConnMap.get(connID)!.mediaConn?.close();
                 newConnMap.get(connID)!.mediaConn = action.mediaConn;
                 // if (!action.mediaConn?.open) action.mediaConn?.answer()
             } else {
                 // reject the call if there is no data stream
-                console.log("call rejected")
+                console.log("call rejected due to mising data Conn")
                 action.mediaConn?.close()
             }
         }
@@ -43,7 +42,7 @@ function connMapUpdater(state: Map<string, client>, action: {type: string, dataC
             // newConnMap.get(connID)?.mediaConn?.close();
             newConnMap.delete(connID)
         } else {
-            newConnMap.get(connID)?.dataConn.send("Media Connection Closed")
+            newConnMap.get(connID)?.dataConn.send("Media Connection Closed by remove action")
             newConnMap.get(connID)?.mediaConn?.close();
             if (newConnMap.has(connID))
                 if (action.mediaConn === newConnMap.get(connID)?.mediaConn)
@@ -57,6 +56,7 @@ function connMapUpdater(state: Map<string, client>, action: {type: string, dataC
 export default function MediaRecv() {
     const [peer, setPeer] = useState<undefined | Peer>(undefined);
     const [myID, setMyID] = useState("")
+    const logRef = useRef(null)
 
     const [connMap, updateConnMap] = useReducer(connMapUpdater, new Map<string, client>())
     const [log, updateLog] = useReducer((state: Array<string>, newMsg: string) => {
@@ -64,7 +64,7 @@ export default function MediaRecv() {
     }, new Array<string>())
     
     const newDataConn = (dataConn: DataConnection) => {
-        console.log("react callback connection");
+        console.log("New Data Connection");
         updateConnMap({type: "ADD", dataConn:dataConn})
         updateLog("Connected to peer: " + dataConn.peer)
         dataConn.on("close", () => {
@@ -73,7 +73,7 @@ export default function MediaRecv() {
     }
 
     const newMediaConn = (mediaConn: MediaConnection) => {
-        console.log("react callback call");
+        console.log("New Media Connection");
         updateConnMap({type:"ADD", mediaConn:mediaConn})
         updateLog("Stream from peer: " + mediaConn.peer)
         updateLog("Connection ID: " + mediaConn.connectionId)
@@ -83,10 +83,10 @@ export default function MediaRecv() {
             updateLog("stream added for " + mediaConn.connectionId)
             console.log("stream has been added")
             temp = stream;
-        })
+        })  
         mediaConn.on("close", () => {
             updateConnMap({type: "REMOVE", mediaConn:mediaConn})
-            console.log("stream has ended")
+            console.log("Media Connection Closed")
         })
         mediaConn.answer()
     }
@@ -112,7 +112,7 @@ export default function MediaRecv() {
         <a href={window.location.protocol + "//" + window.location.host + "/jointVMC/join/" + myID}>
             {window.location.protocol + "//" + window.location.host + "/jointVMC/join/" + myID}
         </a>
-        <div id='Log' className='top-1 overflow-auto flex-1'>
+        <div id='Log' className='top-1 overflow-auto flex-1 h-60' ref={logRef}>
             {
                 log.map((ele, idx) => {
                     return <p className='text-center border-spacing-1' key={idx}>{ele}</p>
@@ -123,7 +123,7 @@ export default function MediaRecv() {
             Array.from(connMap).map(([id, client], idx) => (
                 <div key={id}>
                     <p>Peer {idx}: {id}</p>
-                    <Preview mediaStream={client.mediaConn?.remoteStream}/>
+                    <HostPreview cl={client}/>
                 </div>
             ))
         }

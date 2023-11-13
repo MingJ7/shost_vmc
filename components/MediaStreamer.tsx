@@ -1,16 +1,25 @@
 "use client"
 import clientPeer from '@/libs/clientPeer';
-import Peer, { DataConnection, MediaConnection } from 'peerjs';
+import { DataConnection, MediaConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
-
-
+import { ClientPreview } from './MediaStreamClientPreview';
 
 export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string, mediaStream?: MediaStream}) {
     const [peer, setPeer] = useState<undefined | clientPeer>();
     const [conn, setConn] = useState<undefined | DataConnection>();
+    const [passthrough, setpassthrough] = useState("true");
     
     const [log, setLog] = useState(new Array<string>())
     
+    function updatepassthrough(newState: string){
+        const settingData = {passthrough: false};
+        if (newState === "true"){
+            settingData.passthrough = true
+        }
+        conn?.send({type:"setting", data:settingData});
+        setpassthrough(newState);
+    }
+
     function setup(){
         const newPeer = new clientPeer();
         newPeer.on("open", () => {
@@ -20,10 +29,18 @@ export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string
                 // only assign the connection on connected
                 setConn(c);
             })
-            c.on('data', (data: any) => {
-                setLog([...log, data]);
-            })
-        })
+            c.on('data', (raw) => {
+                if (typeof raw === "string")
+                    setLog([...log, raw]);
+                else if (raw instanceof Object){
+                    const datastr = JSON.stringify(raw);
+                    const data = raw as any;
+                    if (data.type === "ping"){
+                        c.send({type:"pong"});
+                    }
+                }
+            });
+        });
         
         setPeer(newPeer)
 
@@ -38,20 +55,31 @@ export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string
     }
 
     function streamSetup(){
+        if (passthrough === "true") return;
         let stream: MediaConnection;
         if(peer && conn && mediaStream){
             stream = peer.call(remoteID, mediaStream);
         }
 
         return function cleanup(){
-            if  (stream) stream.close()
+            if (stream) stream.close()
         }
     }
 
     useEffect(setup, [])
-    useEffect(streamSetup, [conn, mediaStream])
+    useEffect(streamSetup, [mediaStream])
     
     return (<div>
+        <select id='transmitSelect' value={passthrough} onChange={evt => updatepassthrough(evt.target.value)}>
+            <option value="false">Send video (Host compute)</option>
+            <option value="true">Send tracking (Self compute)</option>
+        </select>
+        {
+            passthrough === "true" && conn ? 
+                <ClientPreview mediaStream={mediaStream} dataConnection={conn}/>
+            :
+                undefined
+        }
         <div id='Log' className='top-1 overflow-auto flex-1'>
             {
                 log.map((ele) => {
