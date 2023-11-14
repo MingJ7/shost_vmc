@@ -2,6 +2,14 @@
 import { useEffect, useState } from "react"
 import { promptPermission } from "./helper"
 
+const noAudio: MediaDeviceInfo = {
+    deviceId: "null",
+    groupId: "null",
+    kind: "audioinput",
+    label: "No Audio",
+    toJSON: () => "",
+}
+
 export function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaStream | undefined) => void}) {
     const [videoInDevices, setVideoInDevices] = useState(new Array<MediaDeviceInfo>())
     const [audioInDevices, setAudioInDevices] = useState(new Array<MediaDeviceInfo>())
@@ -14,6 +22,7 @@ export function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaSt
     function gotDevices(deviceInfos: Array<MediaDeviceInfo>) {
         const newAudioList = new Array<MediaDeviceInfo>()
         const newVideoList = new Array<MediaDeviceInfo>()
+        newAudioList.push(noAudio);
         for (let i = 0; i !== deviceInfos.length; ++i) {
             if (deviceInfos[i].deviceId === '') {
                 promptPermission().then(() => navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError));
@@ -50,10 +59,12 @@ export function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaSt
         stop()
         const audioSource = audioIn;
         const videoSource = videoIn;
-        const constraints = {
-            audio: { deviceId: audioSource ? { exact: audioSource } : undefined },
+        const constraints: any = {
             video: { deviceId: videoSource ? { exact: videoSource } : undefined }
         };
+        if (audioSource !== "null") 
+            constraints.audio= { deviceId: audioSource ? { exact: audioSource } : undefined },
+        console.log(constraints);
         navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
     }
 
