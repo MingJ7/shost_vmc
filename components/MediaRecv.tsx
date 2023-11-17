@@ -99,10 +99,6 @@ export default function MediaRecv({peer}: {peer: Peer}) {
     useEffect(setup, [peer])
     console.log("render")
     return (<div>
-        <p>Share the for others to join</p>
-        <a href={window.location.protocol + "//" + window.location.host + "/jointVMC/join/" + myID}>
-            {window.location.protocol + "//" + window.location.host + "/jointVMC/join/" + myID}
-        </a>
         <div id='Log' className='top-1 overflow-auto flex-1 h-60' ref={logRef}>
             {
                 log.map((ele, idx) => {
