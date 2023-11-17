@@ -62,10 +62,12 @@ export default function MediaRecv({peer}: {peer: Peer}) {
     }, new Array<string>())
     
     const newDataConn = (dataConn: DataConnection) => {
+        if (dataConn.label === "init") return;
         console.log("New Data Connection");
         updateConnMap({type: "ADD", dataConn:dataConn})
         updateLog("Connected to peer: " + dataConn.peer)
         dataConn.on("close", () => {
+            updateLog("Disconnected from peer: " + dataConn.peer)
             updateConnMap({type: "REMOVE", dataConn:dataConn})
         })
     }
