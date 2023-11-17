@@ -1,5 +1,4 @@
 "use client"
-import hostPeer from '@/libs/hostPeer';
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
 import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { HostPreview } from './HostPreview';
@@ -53,8 +52,7 @@ function connMapUpdater(state: Map<string, client>, action: {type: string, dataC
     return newConnMap;
 }
 
-export default function MediaRecv() {
-    const [peer, setPeer] = useState<undefined | Peer>(undefined);
+export default function MediaRecv({peer}: {peer: Peer}) {
     const [myID, setMyID] = useState("")
     const logRef = useRef(null)
 
@@ -92,20 +90,13 @@ export default function MediaRecv() {
     }
 
     function setup(){
-        console.log("setup is run");
-        const newPeer = new hostPeer();
-        newPeer.on('open', () => setMyID(newPeer.id));
-        newPeer.on('connection', newDataConn);
-        newPeer.on('call', newMediaConn);
-        
-        setPeer(newPeer);
-        return function cleanup() {
-            peer?.destroy()
-            setPeer(undefined)
-        }
+        setMyID(peer.id)
+        peer.on('open', () => setMyID(peer.id));
+        peer.on('connection', newDataConn);
+        peer.on('call', newMediaConn);
     }
 
-    useEffect(setup, [])
+    useEffect(setup, [peer])
     console.log("render")
     return (<div>
         <p>Share the for others to join</p>

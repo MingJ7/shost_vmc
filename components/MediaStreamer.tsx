@@ -1,11 +1,9 @@
 "use client"
-import clientPeer from '@/libs/clientPeer';
-import { DataConnection, MediaConnection } from 'peerjs';
+import Peer, { DataConnection, MediaConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
 import { ClientPreview } from './MediaStreamClientPreview';
 
-export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string, mediaStream?: MediaStream}) {
-    const [peer, setPeer] = useState<undefined | clientPeer>();
+export default function MediaStreamer({peer, remoteID, mediaStream}: {peer: Peer, remoteID: string, mediaStream?: MediaStream}) {
     const [conn, setConn] = useState<undefined | DataConnection>();
     const [passthrough, setpassthrough] = useState("true");
     
@@ -21,37 +19,23 @@ export default function MediaStreamer({remoteID, mediaStream}: {remoteID: string
     }
 
     function setup(){
-        const newPeer = new clientPeer();
-        newPeer.on("open", () => {
-            console.log("client:", newPeer.id)
-            const c = newPeer.connect(remoteID);
-            c.on("open",() => {
-                // only assign the connection on connected
-                setConn(c);
-            })
-            c.on('data', (raw) => {
-                if (typeof raw === "string")
-                    setLog([...log, raw]);
-                else if (raw instanceof Object){
-                    const datastr = JSON.stringify(raw);
-                    const data = raw as any;
-                    if (data.type === "ping"){
-                        c.send({type:"pong"});
-                    }
+        console.log("client:", peer.id)
+        const c = peer.connect(remoteID);
+        c.on("open",() => {
+            // only assign the connection on connected
+            setConn(c);
+        })
+        c.on('data', (raw) => {
+            if (typeof raw === "string")
+                setLog([...log, raw]);
+            else if (raw instanceof Object){
+                const datastr = JSON.stringify(raw);
+                const data = raw as any;
+                if (data.type === "ping"){
+                    c.send({type:"pong"});
                 }
-            });
+            }
         });
-        
-        setPeer(newPeer)
-
-        return function cleanup(){
-            conn?.close();
-            // d.close();
-            newPeer.destroy();
-            setPeer(undefined);
-            setConn(undefined);
-            console.log("cleanup done")
-        }
     }
 
     function streamSetup(){
