@@ -8,9 +8,10 @@ import { useEffect, useState } from 'react';
 
 const PeerComponent = dynamic(() => import("../../components/PeerComponent"), {ssr: false})
 
-export function Component() {
+export default function Component() {
     const [peer, setPeer] = useState<undefined | Peer>();
     const [myID, setMyID] = useState("");
+    const [hosturl, setHosturl] = useState("");
     const [remoteList, setRemoteList] = useState(new Array<string>())
     const [mediaStream, setMediaStream] = useState<MediaStream | undefined>()
 
@@ -36,6 +37,9 @@ export function Component() {
     }
     
     useEffect(()=>{
+        setHosturl(window.location.protocol + "//" + window.location.host);
+    }, [])
+    useEffect(()=>{
         peer?.addListener("open", (id) => setMyID(id));
     }, [peer])
     useEffect(()=>{
@@ -48,8 +52,8 @@ export function Component() {
     return (<div>
         <PeerComponent peer={peer} setPeer={updatePeer}/>
         <p>Share the for others to join</p>
-        <a href={window.location.protocol + "//" + window.location.host + "/jointVMC/room/" + myID}>
-            {window.location.protocol + "//" + window.location.host + "/jointVMC/room/" + myID}
+        <a href={hosturl + "/jointVMC/room/" + myID}>
+            {hosturl + "/jointVMC/room/" + myID}
         </a>
         <p>List: {remoteList.toString()}</p>
         <MediaSelection setMediaStream={setMediaStream}/>
@@ -57,5 +61,3 @@ export function Component() {
         <MediaRecv peer={peer}/>
     </div>)
 }
-
-export default dynamic (() => Promise.resolve(Component), {ssr:false});

@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 
 const PeerComponent = dynamic(() => import("../../../components/PeerComponent"), {ssr: false})
 
-export function Component() {
+export default function Component() {
     const [peer, setPeer] = useState<undefined | Peer>();
     const param = useParams();
     const remote = typeof param.remoteID === "string" ? param.remoteID : param.remoteID[-1];
@@ -73,5 +73,3 @@ export function Component() {
         <MediaRecv peer={peer}/>
     </div>)
 }
-
-export default dynamic (() => Promise.resolve(Component), {ssr:false});
