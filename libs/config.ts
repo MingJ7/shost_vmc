@@ -1,5 +1,5 @@
 export const myPeerConfig = {
-    host:"localhost",
-    port:9000,
-    path:"/"
+    host:"nekom7dev.net",
+    path:"/peerjs",
+    secure:true,
 }
