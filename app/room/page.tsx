@@ -3,7 +3,7 @@ import MediaRecv from '@/components/MediaRecv';
 import MediaStreamer from '@/components/MediaStreamer';
 import { MediaSelection } from '@/components/selectors/input';
 import dynamic from 'next/dynamic';
-import Peer from 'peerjs';
+import Peer, { DataConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
 
 const PeerComponent = dynamic(() => import("../../components/PeerComponent"), {ssr: false})
@@ -23,14 +23,27 @@ export function Component() {
         setPeer(peer);
     }
 
+    function newPeerConnection(dc: DataConnection){
+        if (dc.peer == peer?.id) return
+        if (!remoteList.find((val) => val == dc.peer)){
+            setRemoteList((prevState) => [...prevState, dc.peer]);
+        }
+        if (dc.label === "init") {
+            dc.addListener("open", () =>
+                dc.send({type:"init", remoteList:remoteList})
+            )
+        }
+    }
+    
     useEffect(()=>{
-        peer?.addListener('connection', (dc) => {
-            if (!remoteList.find((val) => val == dc.peer))
-                setRemoteList([...remoteList, dc.peer]);
-            dc.send({type:"init", remoteList:remoteList})
-        });
         peer?.addListener("open", (id) => setMyID(id));
     }, [peer])
+    useEffect(()=>{
+        peer?.addListener("connection", newPeerConnection);
+        return function cleanup(){
+            peer?.removeListener("connection", newPeerConnection);
+        }
+    }, [remoteList, peer])
 
     return (<div>
         <PeerComponent peer={peer} setPeer={updatePeer}/>

@@ -4,7 +4,7 @@ import MediaStreamer from '@/components/MediaStreamer';
 import { MediaSelection } from '@/components/selectors/input';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import Peer from 'peerjs';
+import Peer, { DataConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
 
 const PeerComponent = dynamic(() => import("../../../components/PeerComponent"), {ssr: false})
@@ -26,28 +26,44 @@ export function Component() {
         setPeer(peer);
     }
 
+    function newPeerConnection(dc: DataConnection){
+        if (dc.peer == peer?.id) return
+        if (!remoteList.find((val) => val == dc.peer)){
+            setRemoteList((prevState) => [...prevState, dc.peer]);
+        }
+        if (dc.label === "init") {
+            dc.addListener("open", () =>
+                dc.send({type:"init", remoteList:remoteList})
+            )
+        }
+    }
+
     useEffect(()=>{
-        peer?.addListener('connection', (dc) => {
-            if (!remoteList.find((val) => val == dc.peer)){
-                setRemoteList([...remoteList, dc.peer]);
-            }
-            dc.send({type:"init", remoteList:remoteList})
-        })
-        peer?.addListener("open", () =>{
+        peer?.addListener("open", async () =>{
             const c = peer?.connect(remote, {label: "init"});
-            c.on('data', (msg: unknown) => {
+            const readData = (msg: unknown) => {
+                console.log("got init msg", msg)
                 var data: any
                 if (typeof msg === "string")
                     data = JSON.parse(msg as string);
                 else
                     data = msg
                 if (data.remoteList){
-                    setRemoteList(data.remoteList)
+                    data.remoteList = data.remoteList.filter((val:any) => val != peer.id);
+                    setRemoteList((prevState) => [...prevState, ...data.remoteList])
                 }
-            });
+            }
+            c.on('data', readData);
+            c.addListener("close", () => console.log("init closed"));
         })
         setRemoteList([remote]);
     }, [peer])
+    useEffect(()=>{
+        peer?.addListener("connection", newPeerConnection);
+        return function cleanup(){
+            peer?.removeListener("connection", newPeerConnection);
+        }
+    }, [remoteList, peer])
 
     return (<div>
         <PeerComponent peer={peer} setPeer={updatePeer}/>
