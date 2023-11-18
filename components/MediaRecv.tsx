@@ -52,8 +52,7 @@ function connMapUpdater(state: Map<string, client>, action: {type: string, dataC
     return newConnMap;
 }
 
-export default function MediaRecv({peer}: {peer: Peer}) {
-    const [myID, setMyID] = useState("")
+export default function MediaRecv({peer}: {peer?: Peer}) {
     const logRef = useRef(null)
 
     const [connMap, updateConnMap] = useReducer(connMapUpdater, new Map<string, client>())
@@ -62,6 +61,7 @@ export default function MediaRecv({peer}: {peer: Peer}) {
     }, new Array<string>())
     
     const newDataConn = (dataConn: DataConnection) => {
+        console.log("dataconn label", dataConn.label)
         if (dataConn.label === "init") return;
         console.log("New Data Connection");
         updateConnMap({type: "ADD", dataConn:dataConn})
@@ -92,14 +92,11 @@ export default function MediaRecv({peer}: {peer: Peer}) {
     }
 
     function setup(){
-        setMyID(peer.id)
-        peer.on('open', () => setMyID(peer.id));
-        peer.on('connection', newDataConn);
-        peer.on('call', newMediaConn);
+        peer?.on('connection', newDataConn);
+        peer?.on('call', newMediaConn);
     }
 
     useEffect(setup, [peer])
-    console.log("render")
     return (<div>
         <div id='Log' className='top-1 overflow-auto flex-1 h-60' ref={logRef}>
             {

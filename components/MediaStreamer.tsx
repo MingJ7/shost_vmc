@@ -3,7 +3,7 @@ import Peer, { DataConnection, MediaConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
 import { ClientPreview } from './MediaStreamClientPreview';
 
-export default function MediaStreamer({peer, remoteID, mediaStream}: {peer: Peer, remoteID: string, mediaStream?: MediaStream}) {
+export default function MediaStreamer({peer, remoteID, mediaStream}: {peer?: Peer, remoteID: string, mediaStream?: MediaStream}) {
     const [conn, setConn] = useState<undefined | DataConnection>();
     const [passthrough, setpassthrough] = useState("true");
     
@@ -18,9 +18,9 @@ export default function MediaStreamer({peer, remoteID, mediaStream}: {peer: Peer
         setpassthrough(newState);
     }
 
-    function setup(){
+    function setupPeer(peer: Peer){
         console.log("client:", peer.id)
-        const c = peer.connect(remoteID);
+        const c = peer?.connect(remoteID);
         c.on("open",() => {
             // only assign the connection on connected
             setConn(c);
@@ -50,7 +50,14 @@ export default function MediaStreamer({peer, remoteID, mediaStream}: {peer: Peer
         }
     }
 
-    useEffect(setup, [])
+    useEffect(() => {
+        if (peer !== undefined){
+            if (peer.open)
+                setupPeer(peer);
+            else
+                peer.addListener("open", (id) => setupPeer(peer));
+        } 
+    }, [peer])
     useEffect(streamSetup, [mediaStream])
     
     return (<div>
