@@ -27,9 +27,9 @@ export default function PeerComponent({peer, setPeer}: {peer?: Peer, setPeer: Ca
     function peerChange(){
         if (lastPeer === undefined) return;
         console.log("peer cahnge", lastPeer, peer)
-        if (lastPeer === peer) return;
-
-        lastPeer.destroy();
+        if (lastPeer !== peer) 
+            lastPeer.destroy();
+        
         function destroyPeer() {
             peer?.destroy();
             console.log("destroyed peer", peer)
