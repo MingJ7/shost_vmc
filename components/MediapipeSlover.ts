@@ -67,6 +67,7 @@ export class VMCStreamer {
   baseNeckRotation: Vector;
   upperArmRotation: Vector;
   updateBase: boolean;
+  ticker: Worker
 
   constructor(video: HTMLVideoElement, stream: MediaStream, linker: WShostLink | WRTCclientLink) {
     this.video = video;
@@ -78,13 +79,19 @@ export class VMCStreamer {
     this.upperArmRotation = new Vector(0, 0, 0);
     this.updateBase = false;
     this.video.srcObject = this.stream;
+    this.ticker = new Worker(new URL("MediapipeSloverWorker.ts", import.meta.url))
 
     VMCStreamer.createFaceLandmarker().then((faceLandmarker) => this.faceLandmarker = faceLandmarker)
-    this.video.onplay = () => this.detection(-1);
+    this.ticker.addEventListener("message", (msg) => {
+      console.log("workermsg:", msg.data)
+      this.detection(msg.data)
+    })
+    this.video.onplay = () => this.ticker.postMessage({type:"control", play: true});
   }
 
   async detection(prevTime: DOMHighResTimeStamp) {
     const timeNow = performance.now()
+    this.ticker.postMessage({type:"time", time:timeNow})
     // Now let's start detecting the stream.
     if (prevTime !== timeNow) {
       prevTime = timeNow;
@@ -105,10 +112,11 @@ export class VMCStreamer {
         } 
       }
     }
-    // If the stream is active and video not paused
-    // Queue Calculations for next frame
-    if (this.stream.active && !this.video.paused) {
-      setTimeout((newTimeNow) => this.detection(newTimeNow), 1000/this.framerate);
+
+    // If the stream is not active or video is paused
+    // pause the ticker
+    if (!this.stream.active || this.video.paused) {
+      this.ticker.postMessage({type:"control", play: false})
     }
   }
 
@@ -136,6 +144,7 @@ export class VMCStreamer {
   release(){
     console.log("closing sock")
     this.linker.close();
+    this.ticker.terminate();
     console.log("closing landmarker")
     // this.faceLandmarker?.close();
     console.log("closed VMC streamer")
