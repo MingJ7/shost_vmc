@@ -1,6 +1,6 @@
 "use client"
+import KeepAlive from '@/components/KeepAlive';
 import MediaRecv from '@/components/MediaRecv';
-import SlientAudio from '@/components/SlientAudio';
 import dynamic from 'next/dynamic';
 import Peer from 'peerjs';
 import { useEffect, useState } from 'react';
@@ -32,6 +32,6 @@ export default function Component() {
             {hosturl + "/jointVMC/join/" + myID}
         </a>
         <MediaRecv peer={peer}/>
-        <SlientAudio/>
+        <KeepAlive/>
     </div>)
 }
