@@ -2,20 +2,66 @@
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
 import { ClientPreview } from './MediaStreamClientPreview';
+import { EventEmitter } from "events";
 
+export class WSrecieverLink extends EventEmitter {
+    port: number;
+    ws: WebSocket;
+  
+    constructor(port: number){
+      super()
+      this.port = port;
+      this.ws =  WSrecieverLink.createWebSocket(port);
+      this.ws.addEventListener("message", (evt) =>{
+        this.emit("message", evt.data)
+      })
+    }
+  
+    setPort(port: number){
+      this.port = port;
+      this.ws.close();
+      this.ws = WSrecieverLink.createWebSocket(port);
+      this.ws.addEventListener("message", (evt) =>{
+        this.emit("message", evt.data)
+      })
+    }
+  
+    close(){
+      this.ws.close();
+    }
+  
+    static createWebSocket(port: number){
+      const ws = new WebSocket("ws://localhost:8765");
+      ws.addEventListener("open", () => ws.send(JSON.stringify({type: "recv", port: port})));
+      return ws;
+    }
+  }
+  
 export default function MediaStreamer({peer, remoteID, mediaStream}: {peer?: Peer, remoteID: string, mediaStream?: MediaStream}) {
     const [conn, setConn] = useState<undefined | DataConnection>();
-    const [passthrough, setpassthrough] = useState("true");
+    const [passthrough, setpassthrough] = useState("web");
     
-    const [log, setLog] = useState(new Array<string>())
+    const [link, setLink] = useState<undefined | WSrecieverLink>();
+    const [log, setLog] = useState(new Array<string>());
     
     function updatepassthrough(newState: string){
         const settingData = {passthrough: false};
-        if (newState === "true"){
+        if (newState !== "video"){
             settingData.passthrough = true
         }
         conn?.send({type:"setting", data:settingData});
         setpassthrough(newState);
+        if (newState === "host"){
+            const newLink = new WSrecieverLink(35749)
+            setLink(newLink)
+            newLink.addListener("message", (msg: Blob) => {
+                msg.arrayBuffer().then((abuf) =>{
+                    console.log(abuf)
+                    conn?.send({type:"motionData", data: abuf})
+
+                })
+            })
+        }
     }
 
     function setupPeer(peer: Peer){
@@ -39,7 +85,7 @@ export default function MediaStreamer({peer, remoteID, mediaStream}: {peer?: Pee
     }
 
     function streamSetup(){
-        if (passthrough === "true") return;
+        if (passthrough === "web") return;
         let stream: MediaConnection;
         if(peer && conn && mediaStream){
             stream = peer.call(remoteID, mediaStream);
@@ -63,10 +109,11 @@ export default function MediaStreamer({peer, remoteID, mediaStream}: {peer?: Pee
     return (<div>
         <select id='transmitSelect' value={passthrough} onChange={evt => updatepassthrough(evt.target.value)}>
             <option value="false">Send video (Host compute)</option>
-            <option value="true">Send tracking (Self compute)</option>
+            <option value="web">Send tracking (Web compute)</option>
+            <option value="host">Send tracking (Host compute)</option>
         </select>
         {
-            passthrough === "true" && conn ? 
+            passthrough === "web" && conn ? 
                 <ClientPreview mediaStream={mediaStream} dataConnection={conn}/>
             :
                 undefined
