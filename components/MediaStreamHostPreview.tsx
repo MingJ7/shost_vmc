@@ -1,9 +1,9 @@
 "use client"
 import { useEffect, useRef, useState } from "react";
-import { VMCStreamer, WShostLink } from "./MediapipeSlover";
+import { VMCStreamer, WStrasmitLink } from "./MediapipeSlover";
 import { AudioOutputSelector } from "./selectors/output";
 
-export function HostVideoPreview ({mediaStream, linker}: {mediaStream: MediaStream | undefined, linker: WShostLink}){
+export function HostVideoPreview ({mediaStream, linker}: {mediaStream: MediaStream | undefined, linker: WStrasmitLink}){
     const [preview, setPreview] = useState(false);
     const [vmcStream, setVMCStream] = useState<VMCStreamer | undefined>()
     const videoRef = useRef(null)

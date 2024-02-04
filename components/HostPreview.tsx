@@ -1,7 +1,7 @@
 import { DataConnection, MediaConnection } from 'peerjs';
 import { useEffect, useState } from 'react';
 import { HostVideoPreview } from './MediaStreamHostPreview';
-import { WShostLink } from './MediapipeSlover';
+import { WStrasmitLink } from './MediapipeSlover';
 
 type client = {
     dataConn: DataConnection,
@@ -13,7 +13,7 @@ export function HostPreview({cl}: {cl: client}){
     const [passthrough, setpassthrough] = useState(true);
     const [rtt, setRTT] = useState(-1);
     const [port, setPort] = useState(DEFUALTPORT);
-    const [wsLinker, setwsLinker] = useState(() => new WShostLink(port));
+    const [wsLinker, setwsLinker] = useState(() => new WStrasmitLink(port));
 
     function updatePort(port: number){
         if (port < 1024) port = 1024;

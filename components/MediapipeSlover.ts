@@ -3,13 +3,14 @@ import { Face, TFace, Vector } from "kalidokit";
 import Quaternion from "quaternion";
 import osc from "osc-min";
 import { DataConnection } from "peerjs";
-export class WShostLink {
+
+export class WStrasmitLink {
   port: number;
   ws: WebSocket;
 
   constructor(port: number){
     this.port = port;
-    this.ws =  WShostLink.createWebSocket(port);
+    this.ws =  WStrasmitLink.createWebSocket(port);
   }
 
   send(buffer: Buffer){
@@ -18,7 +19,7 @@ export class WShostLink {
     } else if (this.ws.readyState >= this.ws.CLOSING){
       // Create new connection is prev one is closed
       this.ws.close();
-      this.ws = WShostLink.createWebSocket(this.port);
+      this.ws = WStrasmitLink.createWebSocket(this.port);
       console.log("Failed to send data, Websocket is Closed", "Retrying connection");
     }
   }
@@ -26,7 +27,7 @@ export class WShostLink {
   setPort(port: number){
     this.port = port;
     this.ws.close();
-    this.ws = WShostLink.createWebSocket(port);
+    this.ws = WStrasmitLink.createWebSocket(port);
   }
 
   close(){
@@ -62,14 +63,14 @@ export class VMCStreamer {
   stream: MediaStream;
   framerate: number;
   port: number;
-  linker: WShostLink | WRTCclientLink;
+  linker: WStrasmitLink | WRTCclientLink;
   faceLandmarker: FaceLandmarker | undefined;
   baseNeckRotation: Vector;
   upperArmRotation: Vector;
   updateBase: boolean;
   ticker: Worker
 
-  constructor(video: HTMLVideoElement, stream: MediaStream, linker: WShostLink | WRTCclientLink) {
+  constructor(video: HTMLVideoElement, stream: MediaStream, linker: WStrasmitLink | WRTCclientLink) {
     this.video = video;
     this.stream = stream;
     this.framerate = stream.getVideoTracks()[0].getSettings().frameRate ?? 30;
