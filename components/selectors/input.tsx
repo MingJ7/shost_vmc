@@ -98,16 +98,16 @@ export function MediaSelection({setMediaStream}: {setMediaStream: (arg0: MediaSt
             <p>Choose Audio Device</p>
             <select id='audioSelect' value={audioIn} onChange={evt => setAudioIn(evt.target.value)}>
                 {
-                    audioInDevices.map((device) => (
-                        <option value={device.deviceId} key={device.deviceId}>{device.label}</option>
+                    audioInDevices.map((device, idx) => (
+                        <option value={device.deviceId} key={device.deviceId}>{device.label || "Device #" + idx}</option>
                     ))
                 }
             </select>
             <p>Choose Video Device</p>
             <select id='videoSelect' value={videoIn} onChange={evt => setVideoIn(evt.target.value)}>
                 {
-                    videoInDevices.map((device) => (
-                        <option value={device.deviceId} key={device.deviceId}>{device.label}</option>
+                    videoInDevices.map((device, idx) => (
+                        <option value={device.deviceId} key={device.deviceId}>{device.label || "Device #" + idx}</option>
                     ))
                 }
             </select>
