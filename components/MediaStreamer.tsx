@@ -108,9 +108,9 @@ export default function MediaStreamer({peer, remoteID, mediaStream}: {peer?: Pee
     
     return (<div>
         <select id='transmitSelect' value={passthrough} onChange={evt => updatepassthrough(evt.target.value)}>
-            <option value="false">Send video (Host compute)</option>
-            <option value="web">Send tracking (Web compute)</option>
-            <option value="host">Send tracking (Host compute)</option>
+            <option value="video">Send video (peer compute)</option>
+            <option value="web">Send tracking (browser compute)</option>
+            <option value="host">Send tracking (external compute)</option>
         </select>
         {
             passthrough === "web" && conn ? 
