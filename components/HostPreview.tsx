@@ -72,8 +72,12 @@ export function HostPreview({cl}: {cl: client}){
         }
     }, [cl])
 
-    return <div>
+    return <div style={{border:"3px solid black"}}>
         <input type='number' onChange={(evt) => updatePort(parseInt(evt.target.value))} value={port}></input>
+        <button
+            onClick={() => {cl.dataConn.close(); cl.mediaConn?.close();}}
+            style={{border:"1px solid black"}}
+        >Disconnect</button>
         <br/>
         RTT: {rtt} ms
         <br/>
