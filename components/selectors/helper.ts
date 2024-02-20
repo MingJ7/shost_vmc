@@ -15,3 +15,7 @@ export function promptPermission(){
         audio: true
     }).then(endStream).catch(alertPermissionNeed);
 }
+
+export function handleError(error: Error) {
+    console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+}
