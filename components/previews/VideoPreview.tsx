@@ -1,23 +1,16 @@
 "use client"
 import { MutableRefObject, useEffect, useRef, useState } from "react";
-import { VMCStreamer, WRTCclientLink } from "../poseSolvers/MediapipeSlover";
 import { AudioOutputSelector } from "../selectors/output";
-import { DataConnection } from "peerjs";
 
 export default function VideoPreview ({mediaStream, videoRef}: {mediaStream: MediaStream | undefined, videoRef: MutableRefObject<null | HTMLVideoElement>}){
     const [preview, setPreview] = useState(false);
     const [volume, setVolume] = useState(1);
+    const [muted, setMuted] = useState(true);
     
     function updateVolume(vol: number){
         const videoElement = videoRef.current as unknown as HTMLVideoElement;
         videoElement.volume = volume;
         setVolume(vol);
-    }
-
-    function togglePlay(){
-        const videoElement = videoRef.current as unknown as HTMLVideoElement;
-        if (videoElement.paused) videoElement.play();
-        else videoElement.pause();
     }
 
     useEffect(function updatePreview(){
@@ -33,7 +26,12 @@ export default function VideoPreview ({mediaStream, videoRef}: {mediaStream: Med
 
     return (
         <div>
-            <video id={'videoPreview' + mediaStream?.id} autoPlay={true} hidden={!preview} ref={videoRef}></video>
+            <video id={'videoPreview' + mediaStream?.id} autoPlay={true} hidden={!preview} ref={videoRef} muted={muted}></video>
+            <div hidden={!preview}>
+                Muted <input type="checkbox" checked={muted} onChange={(evt) => setMuted(evt.target.checked)} />&emsp;
+                Volume: <input type='range' max={1} min={0} step={0.01} onChange={(evt) => updateVolume(Number(evt.target.value))} value={volume}></input>
+                <AudioOutputSelector videoRef={videoRef}/>
+            </div>
             <button onClick={() => setPreview(!preview)}>{preview ? "Hide Video" : "Display Video"}</button>
         </div>
     )

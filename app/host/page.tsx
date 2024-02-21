@@ -1,6 +1,6 @@
 "use client"
 import KeepAlive from '@/components/KeepAlive';
-import MediaRecv from '@/components/MediaRecv';
+import MediaRecv from '@/components/receiver/MediaRecv';
 import dynamic from 'next/dynamic';
 import Peer from 'peerjs';
 import { useEffect, useState } from 'react';

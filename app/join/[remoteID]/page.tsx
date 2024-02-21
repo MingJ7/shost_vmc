@@ -12,7 +12,7 @@ import { MediaStreamStarter } from '@/components/selectors/MediaStreamStarter';
 import { MediaStreamEnder } from '@/components/selectors/MediaStreamEnder';
 
 const PeerComponent = dynamic(() => import("../../../components/PeerComponent"), {ssr: false})
-const VMCComponent =  dynamic(() => import("../../../components/transmitters/VMCComponent"), {ssr: false})
+const VMCComponent =  dynamic(() => import("../../../components/poseSolvers/VMCComponent"), {ssr: false})
 
 export default function Component() {
     const param = useParams();

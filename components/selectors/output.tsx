@@ -1,7 +1,7 @@
 "use client"
 import { MutableRefObject, useEffect, useState } from "react";
 
-export function AudioOutputSelector({videoRef}: {videoRef: MutableRefObject<null>}) {
+export function AudioOutputSelector({videoRef}: {videoRef: MutableRefObject<null | HTMLVideoElement>}) {
     
     const [audioOutDevices, setAudioOutDevices] = useState(new Array<MediaDeviceInfo>())
     const [audioOut, setAudioOut] = useState("")
@@ -53,7 +53,7 @@ export function AudioOutputSelector({videoRef}: {videoRef: MutableRefObject<null
     }, [])
 
     return <div className='flex'>
-        <p>Output:</p>
+        <p>Audio Output Device:</p>
         <select id='audioSelect' value={audioOut} onChange={evt => updateAudioOut(evt.target.value)}>
         {
             audioOutDevices.map((device) => (
