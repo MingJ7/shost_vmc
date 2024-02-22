@@ -6,7 +6,7 @@ var play = false
 
 
 self.addEventListener("message", (msg) =>{
-  console.log("worker got msg", msg.data)
+  // console.log("worker got msg", msg.data)
   if (msg.data.type === "control"){
     play = msg.data.play
   } else if (msg.data.type === "time"){

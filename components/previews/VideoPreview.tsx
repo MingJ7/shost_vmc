@@ -17,8 +17,10 @@ export default function VideoPreview ({mediaStream, videoRef}: {mediaStream: Med
         console.log("Update Preview", mediaStream)
         if (mediaStream) {
             const videoElement = videoRef.current;
-            if (videoElement)
+            if (videoElement){
                 videoElement.srcObject = mediaStream;
+                videoElement.play();
+            }
             console.log("EffectVideo", videoElement);
         }
         return function cleanup() {}
@@ -26,7 +28,7 @@ export default function VideoPreview ({mediaStream, videoRef}: {mediaStream: Med
 
     return (
         <div>
-            <video id={'videoPreview' + mediaStream?.id} autoPlay={true} hidden={!preview} ref={videoRef} muted={muted}></video>
+            <video className='videoPreview' autoPlay={true} hidden={!preview} ref={videoRef} muted={muted}></video>
             <div hidden={!preview}>
                 Muted <input type="checkbox" checked={muted} onChange={(evt) => setMuted(evt.target.checked)} />&emsp;
                 Volume: <input type='range' max={1} min={0} step={0.01} onChange={(evt) => updateVolume(Number(evt.target.value))} value={volume}></input>

@@ -82,21 +82,24 @@ export class VMCStreamer  extends EventEmitter{
 
     VMCStreamer.createFaceLandmarker().then((faceLandmarker) => this.faceLandmarker = faceLandmarker)
     this.ticker.addEventListener("message", (msg) => {
-      console.log("workermsg:", msg.data)
-      this.detection(msg.data)
+      this.detection();
     })
     this.video.onplay = () => {
       this.ticker.postMessage({type:"control", play: true});
       this.emit("start");
     };
+    const vidTracks = this.stream.getVideoTracks();
+    if (vidTracks.length > 0){
+      const vidTrack = vidTracks[0];
+      vidTrack.addEventListener("mute", () => this.ticker.postMessage({type:"control", play: false}));
+      vidTrack.addEventListener("unmute", () => this.ticker.postMessage({type:"control", play: true}));
+    }
   }
 
-  async detection(prevTime: DOMHighResTimeStamp) {
+  async detection() {
     const timeNow = performance.now()
     this.ticker.postMessage({type:"time", time:timeNow})
     // Now let's start detecting the stream.
-    if (prevTime !== timeNow) {
-      prevTime = timeNow;
       if (this.faceLandmarker) {
         const mpResults = this.faceLandmarker.detectForVideo(this.video, timeNow);
         if (mpResults.faceLandmarks[0]) {
@@ -113,7 +116,7 @@ export class VMCStreamer  extends EventEmitter{
           // console.log(prevTime, "results: ", kaliFace)
         } 
       }
-    }
+
 
     // If the stream is not active or video is paused
     // pause the ticker

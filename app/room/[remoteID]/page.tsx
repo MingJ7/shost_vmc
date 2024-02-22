@@ -1,21 +1,39 @@
 "use client"
-import MediaRecv from '@/components/MediaRecv';
-import MediaStreamer from '@/components/MediaStreamer';
+import MediaRecv from '@/components/receiver/MediaRecv';
+import TransmissionSelector from '@/components/transmitters/TransmissionSelector';
 import { MediaSelection } from '@/components/selectors/input';
 import dynamic from 'next/dynamic';
-import { useParams } from 'next/navigation';
 import Peer, { DataConnection } from 'peerjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
+import { VMCStreamer } from '@/components/poseSolvers/MediapipeSlover';
+import VideoPreview from '@/components/previews/VideoPreview';
+import { MediaStreamEnder } from '@/components/selectors/MediaStreamEnder';
+import { MediaStreamStarter } from '@/components/selectors/MediaStreamStarter';
+import Transmitter from '@/components/transmitters/Transmitter';
+import { useParams } from 'next/navigation';
+import { client, connMapUpdater } from '@/components/receiver/helper';
 
 const PeerComponent = dynamic(() => import("../../../components/PeerComponent"), {ssr: false})
+const VMCComponent =  dynamic(() => import("../../../components/poseSolvers/VMCComponent"), {ssr: false})
+
 
 export default function Component() {
-    const [peer, setPeer] = useState<undefined | Peer>();
     const param = useParams();
     const remote = typeof param.remoteID === "string" ? param.remoteID : param.remoteID[-1];
     const [myID, setMyID] = useState("");
     const [remoteList, setRemoteList] = useState(new Array<string>())
-    const [mediaStream, setMediaStream] = useState<MediaStream | undefined>()
+
+    const [peer, setPeer] = useState<undefined | Peer>();
+    const [transmissionType, setTransmissionType] = useState("web");
+    const [mediaStream, setMediaStream] = useState<undefined | MediaStream>();
+    const [vmcStream, setVMCStream] = useState<undefined | VMCStreamer>();
+    const videoRef = useRef(null);
+    const [log, updateLog] = useReducer((state: Array<string>, newMsg: string) => {
+        return [...state, newMsg]
+    }, new Array<string>())
+    const [audioIn, setAudioIn] = useState("");
+    const [videoIn, setVideoIn] = useState("");
+    const [connMap, updateConnMap] = useReducer(connMapUpdater, new Map<string, client>());
 
     function updatePeer(peer: undefined | Peer){
         if (peer === undefined) return;
@@ -27,9 +45,18 @@ export default function Component() {
     }
 
     function newPeerConnection(dc: DataConnection){
-        if (dc.peer == peer?.id) return
-        if (!remoteList.find((val) => val == dc.peer)){
-            setRemoteList((prevState) => [...prevState, dc.peer]);
+        if (dc.peer == peer?.id) {
+            dc.addListener("open", () => dc.close())
+            return;
+        }
+        if (dc.label !== "init" && !remoteList.find((val) => val == dc.peer)){
+            remoteList.push(dc.peer);
+            setRemoteList([...remoteList]);
+            dc.addListener("close", () => {
+                const index = remoteList.indexOf(dc.peer);
+                if (index > -1) remoteList.splice(index, 1);
+                setRemoteList([...remoteList])
+            });
         }
         if (dc.label === "init") {
             dc.addListener("open", () =>
@@ -58,18 +85,42 @@ export default function Component() {
         })
         setRemoteList([remote]);
     }, [peer])
+
     useEffect(()=>{
         peer?.addListener("connection", newPeerConnection);
         return function cleanup(){
             peer?.removeListener("connection", newPeerConnection);
         }
-    }, [remoteList, peer])
+    }, [peer])
 
     return (<div>
         <PeerComponent peer={peer} setPeer={updatePeer}/>
-        <MediaSelection setMediaStream={setMediaStream}/>
         <p>List: {remoteList.toString()}</p>
-        {remoteList.map(remote => <MediaStreamer key={remote} peer={peer} remoteID={remote} mediaStream={mediaStream} />)}
+        {/* Add check here for established data connection? */}
+        <MediaSelection audioIn={audioIn} setAudioIn={setAudioIn} videoIn={videoIn} setVideoIn={setVideoIn}/>
+        <TransmissionSelector transmissionType={transmissionType} setTransmissionType={setTransmissionType} />
+        <VideoPreview videoRef={videoRef} mediaStream={mediaStream} />
+        {
+            transmissionType === "web" ? 
+                <VMCComponent mediaStream={mediaStream} videoRef={videoRef} vmcStream={vmcStream} setVMCStream={setVMCStream} />
+            :
+                undefined
+        }
+        {mediaStream ? 
+            <MediaStreamEnder mediaStream={mediaStream} setMediaStream={setMediaStream} />
+        :
+            <MediaStreamStarter setMediaStream={setMediaStream} audioIn={audioIn} videoIn={videoIn} />
+        }
+        <div id='Log' className='top-1 overflow-auto flex-1'>
+            {
+                log.map((ele) => {
+                    return <p className='h-20 text-center bottom-1' key={ele}>{ele}</p>
+                })
+            }
+        </div>
+        {
+            remoteList.map((remote) => <Transmitter key={remote} transmissionType={transmissionType} peer={peer} remote={remote} mediaStream={mediaStream} vmcStream={vmcStream} />)
+        }
         <MediaRecv peer={peer}/>
     </div>)
 }

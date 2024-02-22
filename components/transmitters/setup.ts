@@ -27,12 +27,12 @@ export function setupPeer(peer: Peer, remoteID: string, setConn: (dc: DataConnec
 
 export function streamSetup(transmissionType: string, peer: Peer | undefined, conn: DataConnection | undefined, mediaStream: MediaStream | undefined, remoteID: string){
     if (transmissionType !== "video") return;
-    let stream: MediaConnection;
+    let mediaConnection: MediaConnection;
     if(peer && conn && mediaStream){
-        stream = peer.call(remoteID, mediaStream);
+        mediaConnection = peer.call(remoteID, mediaStream);
     }
 
     return function cleanup(){
-        if (stream) stream.close()
+        if (mediaConnection) mediaConnection.close();
     }
 }
